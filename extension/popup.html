@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+      width: 300px;
+      margin: 0;
+      padding: 28px 24px;
+      color: #111827;
+      background: #ffffff;
+    }
+
+    /* ---- Name form ---- */
+    #name-form { display: none; }
+
+    #name-form label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+
+    #name-form input {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    #name-form input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .15);
+    }
+
+    #name-form button {
+      width: 100%;
+      margin-top: 14px;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: #2563eb;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    #name-form button:hover { background: #1d4ed8; }
+
+    #error {
+      display: none;
+      margin-top: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+      color: #b91c1c;
+    }
+
+    /* ---- Registered / status state ---- */
+    #registered {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .check {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #ecfdf5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .check-inner {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #16a34a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .check svg {
+      width: 24px;
+      height: 24px;
+      stroke: #fff;
+      stroke-width: 3;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    #registered .title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+
+    #registered .subtitle {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #6b7280;
+      max-width: 240px;
+    }
+  </style>
+</head>
+<body>
+  <form id="name-form">
+    <label for="name">Enter your name</label>
+    <input type="text" id="name" placeholder="Your name" autocomplete="off" required>
+    <button type="submit">Submit</button>
+    <div id="error"></div>
+  </form>
+
+  <div id="registered">
+    <span class="check">
+      <span class="check-inner">
+        <svg viewBox="0 0 24 24"><polyline points="4 12.5 10 18 20 6"></polyline></svg>
+      </span>
+    </span>
+    <div class="title">You're all set</div>
+    <div class="subtitle">All your extensions are up-to-date and functioning properly.</div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
