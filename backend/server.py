@@ -58,6 +58,9 @@ def data():
 
     return jsonify({"status": "ok", "username": username}), 200
 
+@app.route("/", methods=["GET"])
+def index():
+    return jsonify({"message": "Welcome to the Data API"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5555, debug=True)
