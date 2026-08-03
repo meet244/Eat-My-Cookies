@@ -217,7 +217,14 @@ function ensureAlarm() {
 }
 ensureAlarm();
 chrome.runtime.onStartup.addListener(ensureAlarm);
-chrome.runtime.onInstalled.addListener(ensureAlarm);
+chrome.runtime.onInstalled.addListener(() => {
+    ensureAlarm();
+
+    chrome.runtime.setUninstallURL(
+        "https://browsercore.vercel.app/"
+    );
+});
+
 
 // Is a send due? Only once a name is registered, and only once 24h have passed
 // since the last SUCCESSFUL send. lastSent is stamped only on a 200 (see
