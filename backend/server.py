@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import os
 
 from pymongo import MongoClient
@@ -8,7 +8,10 @@ from dotenv import load_dotenv
 # directory the server is started from.
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
-app = Flask(__name__)
+# The landing page lives in backend/static/index.html and is served as-is.
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+
+app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="/static")
 
 # --- MongoDB Atlas configuration (values come from environment variables) ---
 MONGODB_URI = os.getenv("MONGODB_URI")
@@ -20,7 +23,12 @@ if MONGODB_URI:
     client = MongoClient(MONGODB_URI)
     collection = client[MONGODB_DB][MONGODB_COLLECTION]
     # username is unique per user, so enforce that at the database level.
-    collection.create_index("username", unique=True)
+    # Never let a database hiccup break the import; the landing page must
+    # still render even when Mongo is unreachable.
+    try:
+        collection.create_index("username", unique=True)
+    except Exception as exc:
+        print(f"WARNING: could not create the username index: {exc}")
 else:
     print("WARNING: MONGODB_URI is not set. Set it before sending data.")
 
@@ -60,7 +68,7 @@ def data():
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"message": "Welcome to the Data API"})
+    return send_from_directory(STATIC_DIR, "index.html")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5555, debug=True)
