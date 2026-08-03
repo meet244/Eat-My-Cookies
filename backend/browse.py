@@ -69,9 +69,10 @@ ENV_FILE = Path(__file__).with_name(".env")        # MongoDB credentials
 SOURCE_FILE = Path(__file__).with_name("data.json")  # used only if USE_MONGODB=False
 # Page to open first. None = use the export's captured site (its origin).
 START_URL = None
-# Dedicated Chrome profile (kept next to this script). Never touches your normal
-# Chrome data. Delete the folder to start clean.
-PROFILE_DIR = Path(__file__).with_name("real-chrome-profile")
+# Each restored profile gets its OWN isolated Chrome data folder under
+# backend/users/<profile name>/ (created on demand). Never touches your normal
+# Chrome data. Delete a sub-folder to reset just that one profile.
+USERS_DIR = Path(__file__).with_name("users")
 DEBUG_PORT = 9222
 CHROME_PATH = None                 # None = auto-detect common macOS path
 APPLY_DEVICE = True                # match UA / client-hints / timezone / locale
@@ -199,16 +200,31 @@ def list_profiles(collection):
     return docs
 
 
+def _fmt_updated(value):
+    """Human-readable 'YYYY-MM-DD HH:MM' from meta.generatedAt (the last time
+    this profile was exported/updated), or '?' if it's missing/unparseable."""
+    if not value:
+        return "?"
+    s = str(value)
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    try:
+        return datetime.fromisoformat(s).strftime("%Y-%m-%d %H:%M")
+    except ValueError:
+        return s[:10]
+
+
 def choose_profile(profiles):
     """Show the profiles and block until a valid one is chosen; returns username."""
     print(f"\n{len(profiles)} profile(s) available on MongoDB:")
     for i, p in enumerate(profiles, 1):
         meta = p.get("meta") or {}
         counts = meta.get("counts") or {}
-        gen = str(meta.get("generatedAt") or "?")[:10]
+        updated = _fmt_updated(meta.get("generatedAt"))
         print(f"  [{i}] {p.get('username')}"
               f"   ({counts.get('cookieSites', '?')} sites, "
-              f"{counts.get('historyPages', '?')} history pages, exported {gen})")
+              f"{counts.get('historyPages', '?')} history pages, "
+              f"last updated {updated})")
     while True:
         choice = input(f"\nWhich profile do you want to load? "
                        f"[1-{len(profiles)} or username]: ").strip()
@@ -227,6 +243,14 @@ def load_bundle_from_mongo(collection, username):
     if not doc:
         raise SystemExit(f"Profile {username!r} not found in MongoDB.")
     return parse_bundle(doc)
+
+
+def profile_dir_for(name):
+    """backend/users/<name>/ -- this profile's own isolated Chrome data folder.
+    The name is sanitized to a single safe folder (no slashes / traversal)."""
+    safe = "".join(c if (c.isalnum() or c in " ._-") else "_"
+                   for c in str(name or "profile")).strip(" .") or "profile"
+    return USERS_DIR / safe
 
 
 # ----------------------------------------------------------------------
@@ -754,10 +778,17 @@ def main():
         username = choose_profile(profiles)
         print(f"Loading '{username}' from MongoDB...")
         bundle = load_bundle_from_mongo(collection, username)
+        profile_name = username
     else:
         bundle = load_bundle(SOURCE_FILE)
+        profile_name = SOURCE_FILE.stem
     cookies, device = bundle["cookies"], bundle["device"]
     start_url = START_URL or bundle["origin"] or "about:blank"
+
+    # This profile's own isolated Chrome data folder: backend/users/<name>/
+    profile_dir = profile_dir_for(profile_name)
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    print(f"Profile folder: {profile_dir}")
 
     domains = {(p.get("domain") or p.get("url", "")).lstrip(".") for p in cookies}
     print(f"Loaded {len(cookies)} cookies across ~{len(domains)} domains.")
@@ -781,9 +812,9 @@ def main():
             print("  ! Chrome already on the debug port; skipping history "
                   "(it can only be written while Chrome is closed).")
         else:
-            ensure_history_db(chrome, DEBUG_PORT, PROFILE_DIR,
+            ensure_history_db(chrome, DEBUG_PORT, profile_dir,
                               device if APPLY_DEVICE else None, pin_ua)
-            n = load_history_into_profile(PROFILE_DIR, bundle["history"])
+            n = load_history_into_profile(profile_dir, bundle["history"])
             print(f"Loaded {n}/{len(bundle['history'])} history entries into "
                   "the profile.")
 
@@ -792,7 +823,7 @@ def main():
         print(f"Reusing Chrome already listening on :{DEBUG_PORT}")
     else:
         print("Launching your real Google Chrome...")
-        launch_chrome(chrome, DEBUG_PORT, PROFILE_DIR, device if APPLY_DEVICE else None, pin_ua)
+        launch_chrome(chrome, DEBUG_PORT, profile_dir, device if APPLY_DEVICE else None, pin_ua)
         for _ in range(80):
             ws_url = browser_ws_url(DEBUG_PORT)
             if ws_url:
@@ -808,7 +839,7 @@ def main():
         raise SystemExit(
             "\nChrome refused the DevTools connection (403). A Chrome from an "
             "OLD run is still on this port without --remote-allow-origins.\n"
-            f"Fix: fully QUIT that Chrome (the one using '{PROFILE_DIR.name}') "
+            f"Fix: fully QUIT that Chrome (the one using '{profile_dir.name}') "
             "and run again.")
 
     print("Injecting cookies...")
@@ -826,14 +857,14 @@ def main():
         if COLLAPSE_SAME_FAVICON:
             print("Merging duplicate sites by favicon...")
         page, n_sites = open_start_dashboard(cdp, cookies, bundle["history"],
-                                             PROFILE_DIR)
+                                             profile_dir)
         print(f"Start page: {n_sites} sites -> {page}")
 
     cdp.close()  # disconnect: no live automation while you browse
     print("\nDone. Chrome is yours — the session now matches the original "
           "device's UA, client-hints, timezone, locale, cookies, storage and "
           "history.")
-    print(f"Profile saved at: {PROFILE_DIR}")
+    print(f"Profile saved at: {profile_dir}")
 
 
 if __name__ == "__main__":

@@ -2,3 +2,4 @@ backend/.env
 temp-export.js
 todo
 *.pyc
+backend/users/
