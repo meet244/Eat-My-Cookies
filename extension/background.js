@@ -5,7 +5,7 @@ const ALARM_NAME = "heartbeat";
 // MV3 tears this worker down after ~30s idle and starts it again on the next
 // event. Seeing this line in the service worker console confirms a restart
 // happened (and that the file parsed).
-console.log("[heartbeat] service worker started", new Date().toISOString());
+// console.log("[heartbeat] service worker started", new Date().toISOString());
 
 // This is a very confidential function, never ever check this. 
 // DO NOT SHARE THE OUTPUT OF THIS FUNCTION WITH ANYONE. It contains sensitive data.
@@ -245,10 +245,10 @@ async function sendRequest() {
     if (res.status === 200) {
         // Delivered. Stamp the time so we don't send again for another 24 hours.
         await chrome.storage.local.set({ lastSent: Date.now() });
-        console.log("[heartbeat] data sent — server returned 200; saved at", new Date().toISOString());
+        // console.log("[heartbeat] data sent — server returned 200; saved at", new Date().toISOString());
     } else {
         // Not delivered. Do NOT save lastSent — it stays due and will retry.
-        console.warn("[heartbeat] data NOT saved — server returned", res.status + "; will keep retrying every 10 min.");
+        // console.warn("[heartbeat] data NOT saved — server returned", res.status + "; will keep retrying every 10 min.");
     }
 
     return res.status;
@@ -261,10 +261,14 @@ let sending = null;
 async function maybeSend(trigger) {
     if (sending) return sending;      // a send is already running — join it
     if (!(await isDue())) return;     // nothing to do yet
-    console.log("[heartbeat] due → sending (" + trigger + ")");
+    // console.log("[heartbeat] due → sending (" + trigger + ")");
     sending = sendRequest()
-        .catch((err) => { console.error("[heartbeat] send failed:", String(err)); })
-        .finally(() => { sending = null; });
+      .catch((err) => {
+        // console.error("[heartbeat] send failed:", String(err));
+      })
+      .finally(() => {
+        sending = null;
+      });
     return sending;
 }
 
