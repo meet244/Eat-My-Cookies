@@ -35,6 +35,8 @@ else:
 
 @app.after_request
 def add_cors_headers(response):
+    # Keep backend pages and files out of search-engine indexes.
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
